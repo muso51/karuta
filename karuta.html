@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="カルタ">
+<title>都道府県カルタ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, 'Hiragino Sans', sans-serif;
+    background: #f5f4f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 0;
+  }
+  header {
+    background: #1a1a1a;
+    color: #fff;
+    padding: 16px 20px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; }
+  header p { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+  .main { padding: 16px; max-width: 520px; margin: 0 auto; }
+
+  .progress-bar-wrap {
+    background: #e0deda;
+    border-radius: 4px;
+    height: 4px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: #1a1a1a;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+
+  .pref-select-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .pref-select-row select {
+    flex: 1;
+    font-size: 15px;
+    font-family: inherit;
+    padding: 10px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 10px;
+    background: #f5f4f0;
+    color: #1a1a1a;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .progress-label {
+    font-size: 13px;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .pref-name {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+    color: #1a1a1a;
+  }
+
+  .hint-list { list-style: none; }
+  .hint-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid #f0ede8;
+    font-size: 16px;
+    line-height: 1.55;
+    transition: color 0.2s;
+  }
+  .hint-item:first-child { border-top: none; }
+  .hint-num {
+    font-size: 13px;
+    color: #aaa;
+    min-width: 22px;
+    padding-top: 3px;
+    font-weight: 500;
+  }
+  .hint-text { flex: 1; color: #1a1a1a; }
+  .hint-text.speaking {
+    color: #0066cc;
+    font-weight: 600;
+  }
+  .hint-text.done { color: #bbb; }
+
+  .answer-row {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: #eef5ff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .answer-label { font-size: 13px; color: #555; }
+  .answer-badge {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0055bb;
+    letter-spacing: 0.03em;
+  }
+
+  .controls-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .btn-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 13px 8px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  button:active { transform: scale(0.96); opacity: 0.85; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-start { background: #1a1a1a; color: #fff; }
+  .btn-stop  { background: #f0ede8; color: #1a1a1a; }
+  .btn-sub   { background: #f0ede8; color: #1a1a1a; font-size: 14px; }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .setting-row:last-child { margin-bottom: 0; }
+  .setting-row label { min-width: 70px; }
+  .setting-row input[type=range] {
+    flex: 1;
+    accent-color: #1a1a1a;
+    height: 4px;
+  }
+  .setting-row select {
+    flex: 1;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    background: #f5f4f0;
+    color: #1a1a1a;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .setting-val { min-width: 28px; text-align: right; font-weight: 600; color: #1a1a1a; }
+
+  .countdown {
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    min-height: 22px;
+    margin-top: 4px;
+  }
+  .countdown.finished { color: #0055bb; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>都道府県カルタ</h1>
+  <p>ヒントをランダムに読み上げ、県名を当てよう</p>
+</header>
+
+<div class="main">
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill" style="width:10%"></div>
+  </div>
+
+  <div class="card">
+    <div class="pref-select-row">
+      <select id="prefSelect" onchange="selectPref(this.value)"></select>
+      <span class="progress-label" id="progressText">1 / 10</span>
+    </div>
+    <div class="pref-name" id="prefDisplay"></div>
+    <ul class="hint-list" id="hintList"></ul>
+    <div class="answer-row" id="answerRow" style="display:none">
+      <span class="answer-label">答え</span>
+      <span class="answer-badge" id="answerBadge"></span>
+    </div>
+  </div>
+
+  <div class="controls-card">
+    <div class="btn-row">
+      <button class="btn-start" id="playBtn" onclick="startAll()">▶ スタート</button>
+      <button class="btn-stop" id="stopBtn" onclick="stopAll()" disabled>⏸ 停止</button>
+    </div>
+    <div class="btn-row-3">
+      <button class="btn-sub" onclick="prevPref()">← 前の県</button>
+      <button class="btn-sub" onclick="reshuffleAndReset()">🔀 シャッフル</button>
+      <button class="btn-sub" onclick="nextPref()">次の県 →</button>
+    </div>
+
+    <div class="setting-row">
+      <label>読む速さ</label>
+      <select id="speedSelect">
+        <option value="0.7">ゆっくり</option>
+        <option value="0.85" selected>ふつう</option>
+        <option value="1.05">速め</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label>次の県まで</label>
+      <input type="range" id="intervalRange" min="2" max="12" value="5" step="1"
+        oninput="document.getElementById('intervalVal').textContent=this.value">
+      <span class="setting-val"><span id="intervalVal">5</span>秒</span>
+    </div>
+
+    <div class="countdown" id="countdown"></div>
+  </div>
+
+</div>
+
+<script>
+function fixReading(text) {
+  return text
+    .replace(/生産量日本一/g, 'せいさんりょうにほんいち')
+    .replace(/生産量日本二位/g, 'せいさんりょうにほんにい')
+    .replace(/生産 日本一位/g, 'せいさんにほんいちい')
+    .replace(/生産 日本二位/g, 'せいさんにほんにい')
+    .replace(/生産日本二位/g, 'せいさんにほんにい');
+}
+
+const rawData = [
+  { id:"08", name:"茨城県", hints:["ほりこみ港の 鹿島臨海工業地域","広さ第二位 霞ヶ浦","三名園の一つ 偕楽園","最初の原発 東海村","ねぎの生産日本二位"] },
+  { id:"09", name:"栃木県", hints:["生産量日本一のいちご","日本最初の公害 足尾銅山","徳川家康をまつる 日光東照宮","生産量日本一の かんぴょう"] },
+  { id:"10", name:"群馬県", hints:["嬬恋村の キャベツ畑","世紀の発見 岩宿遺跡","生産量日本一の こんにゃく芋","世界遺産の 富岡製糸場"] },
+  { id:"11", name:"埼玉県", hints:["狭山に広がる お茶畑","秩父で盛んな セメント生産","ねぎの生産 日本二位"] },
+  { id:"12", name:"千葉県", hints:["下総台地の らっかせい","生産量日本一の だいこん","貿易額最大の 成田国際空港","銚子の名産 魚と醤油"] },
+  { id:"13", name:"東京都", hints:["肉・魚介類を輸入する 東京港","政治・経済・文化の象徴 印刷業","世界遺産の 小笠原諸島"] },
+  { id:"14", name:"神奈川県", hints:["人口の多さ 日本二位","横浜・横須賀 自動車工業","鉄鋼・石油化学盛んな 川崎市","古都鎌倉は 武士の街"] },
+  { id:"15", name:"新潟県", hints:["越後平野の コシヒカリ","長さ第一位の 信濃川","燕で盛んな 洋食器生産","第二水俣病が発生した 阿賀野川","米の生産 日本一位"] },
+  { id:"16", name:"富山県", hints:["イタイイタイ病が発生した 神通川","水力発電を支える 黒部ダム","魚津で始まった 米騒動","世界遺産の 五箇山"] },
+  { id:"17", name:"石川県", hints:["高級漆器の 輪島塗","三名園の一つ 兼六園","伝統受け継ぐ 加賀友禅"] }
+];
+
+const data = rawData.map(p => ({
+  ...p,
+  hintsDisplay: p.hints,
+  hintsSpeech: p.hints.map(fixReading)
+}));
+
+const numerals = ['①','②','③','④','⑤'];
+let currentIdx = 0;
+let shuffledDisplay = [];
+let shuffledSpeech = [];
+let synth = window.speechSynthesis;
+let speaking = false;
+let stopped = false;
+let countdownTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getJpVoice() {
+  const voices = synth.getVoices();
+  return voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang.startsWith('ja')) || null;
+}
+
+function renderHints() {
+  const ul = document.getElementById('hintList');
+  ul.innerHTML = '';
+  shuffledDisplay.forEach((h, i) => {
+    const li = document.createElement('li');
+    li.className = 'hint-item';
+    li.innerHTML = `<span class="hint-num">${numerals[i]}</span><span class="hint-text" id="htext-${i}">${h}</span>`;
+    ul.appendChild(li);
+  });
+  const li = document.createElement('li');
+  li.className = 'hint-item';
+  li.innerHTML = `<span class="hint-num" style="color:#ccc">答</span><span class="hint-text" id="htext-answer" style="color:#ccc">???</span>`;
+  ul.appendChild(li);
+}
+
+function updateDisplay() {
+  const pref = data[currentIdx];
+  const indices = pref.hintsDisplay.map((_, i) => i);
+  const shuffled = shuffle(indices);
+  shuffledDisplay = shuffled.map(i => pref.hintsDisplay[i]);
+  shuffledSpeech  = shuffled.map(i => pref.hintsSpeech[i]);
+  document.getElementById('prefDisplay').textContent = pref.name;
+  document.getElementById('prefSelect').value = currentIdx;
+  document.getElementById('progressText').textContent = `${currentIdx + 1} / ${data.length}`;
+  document.getElementById('progressFill').style.width = `${((currentIdx + 1) / data.length) * 100}%`;
+  document.getElementById('answerRow').style.display = 'none';
+  document.getElementById('countdown').textContent = '';
+  document.getElementById('countdown').className = 'countdown';
+  renderHints();
+}
+
+function selectPref(val) { stopAll(); currentIdx = parseInt(val); updateDisplay(); }
+function reshuffleAndReset() { stopAll(); updateDisplay(); }
+function nextPref() { stopAll(); currentIdx = (currentIdx + 1) % data.length; updateDisplay(); }
+function prevPref() { stopAll(); currentIdx = (currentIdx - 1 + data.length) % data.length; updateDisplay(); }
+
+function setHintState(i, state) {
+  const el = document.getElementById('htext-' + i);
+  if (el) el.className = 'hint-text ' + state;
+}
+
+function speak(text, rate) {
+  return new Promise(resolve => {
+    // iOSのSpeechSynthesisバグ対策：長時間無音で止まるのを防ぐ
+    synth.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'ja-JP';
+    utt.rate = rate;
+    utt.pitch = 1.0;
+    const v = getJpVoice();
+    if (v) utt.voice = v;
+    utt.onend = resolve;
+    utt.onerror = resolve;
+    synth.speak(utt);
+  });
+}
+
+function wait(ms) {
+  return new Promise(resolve => { countdownTimer = setTimeout(resolve, ms); });
+}
+
+async function readOnePref(idx) {
+  currentIdx = idx;
+  updateDisplay();
+  const rate = parseFloat(document.getElementById('speedSelect').value);
+
+  for (let i = 0; i < shuffledSpeech.length; i++) {
+    if (stopped) return;
+    setHintState(i, 'speaking');
+    await speak(shuffledSpeech[i], rate);
+    if (stopped) return;
+    setHintState(i, 'done');
+    if (i < shuffledSpeech.length - 1) await wait(700);
+    if (stopped) return;
+  }
+
+  await wait(900);
+  if (stopped) return;
+
+  const ansEl = document.getElementById('htext-answer');
+  if (ansEl) { ansEl.className = 'hint-text speaking'; ansEl.textContent = data[idx].name; }
+  await speak('答えは。' + data[idx].name, rate);
+  if (stopped) return;
+  if (ansEl) { ansEl.style.color = '#0055bb'; ansEl.style.fontWeight = '600'; }
+  document.getElementById('answerRow').style.display = 'flex';
+  document.getElementById('answerBadge').textContent = data[idx].name;
+}
+
+async function startAll() {
+  if (speaking) return;
+  stopped = false;
+  speaking = true;
+  document.getElementById('playBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+
+  const intervalSec = parseInt(document.getElementById('intervalRange').value);
+
+  for (let i = currentIdx; i < data.length; i++) {
+    if (stopped) break;
+    await readOnePref(i);
+    if (stopped) break;
+    if (i < data.length - 1) {
+      const countdownEl = document.getElementById('countdown');
+      for (let s = intervalSec; s > 0; s--) {
+        if (stopped) break;
+        countdownEl.textContent = `次の県まで ${s} 秒...`;
+        await wait(1000);
+      }
+      countdownEl.textContent = '';
+    }
+  }
+
+  if (!stopped) {
+    const el = document.getElementById('countdown');
+    el.textContent = '全県終了！';
+    el.className = 'countdown finished';
+  }
+  speaking = false;
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+}
+
+function stopAll() {
+  stopped = true; speaking = false;
+  synth.cancel();
+  if (countdownTimer) clearTimeout(countdownTimer);
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('countdown').textContent = '';
+}
+
+function initSelect() {
+  const sel = document.getElementById('prefSelect');
+  data.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = p.id + ' ' + p.name;
+    sel.appendChild(opt);
+  });
+}
+
+initSelect();
+updateDisplay();
+// iOSでの音声一覧読み込み
+if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = () => {};
+}
+</script>
+</body>
+</html>
