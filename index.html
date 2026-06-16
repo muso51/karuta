@@ -164,9 +164,10 @@
   button:active { transform: scale(0.96); opacity: 0.85; }
   button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
-  .btn-start { background: #1a1a1a; color: #fff; }
-  .btn-stop  { background: #f0ede8; color: #1a1a1a; }
-  .btn-sub   { background: #f0ede8; color: #1a1a1a; font-size: 14px; }
+  .btn-start        { background: #1a1a1a; color: #fff; }
+  .btn-start-random { background: #1a6b3a; color: #fff; }
+  .btn-stop         { background: #f0ede8; color: #1a1a1a; }
+  .btn-sub          { background: #f0ede8; color: #1a1a1a; font-size: 14px; }
 
   .setting-row {
     display: flex;
@@ -222,10 +223,10 @@
 
   <div class="card">
     <div class="pref-select-row">
-      <select id="prefSelect" onchange="selectPref(this.value)"></select>
+      <select id="prefSelect" onchange="selectPref(this.value)" style="color:transparent;"></select>
       <span class="progress-label" id="progressText">1 / 10</span>
     </div>
-    <div class="pref-name" id="prefDisplay"></div>
+    <div class="pref-name" id="prefDisplay" style="visibility:hidden;"></div>
     <ul class="hint-list" id="hintList"></ul>
     <div class="answer-row" id="answerRow" style="display:none">
       <span class="answer-label">答え</span>
@@ -234,8 +235,14 @@
   </div>
 
   <div class="controls-card">
+    <div style="margin-bottom:10px;">
+      <button class="btn-start" id="oneBtn" onclick="startOne()" style="width:100%;padding:15px 8px;font-size:16px;">▶ この県を再生</button>
+    </div>
+    <div style="margin-bottom:10px;">
+      <button class="btn-start-random" id="randomBtn" onclick="startAll(true)" style="width:100%;padding:15px 8px;font-size:16px;">🔀 県もランダムでスタート</button>
+    </div>
     <div class="btn-row">
-      <button class="btn-start" id="playBtn" onclick="startAll()">▶ スタート</button>
+      <button class="btn-start" id="playBtn" onclick="startAll(false)">▶ 順番通り全県</button>
       <button class="btn-stop" id="stopBtn" onclick="stopAll()" disabled>⏸ 停止</button>
     </div>
     <div class="btn-row-3">
@@ -271,7 +278,8 @@ function fixReading(text) {
     .replace(/生産量日本二位/g, 'せいさんりょうにほんにい')
     .replace(/生産 日本一位/g, 'せいさんにほんいちい')
     .replace(/生産 日本二位/g, 'せいさんにほんにい')
-    .replace(/生産日本二位/g, 'せいさんにほんにい');
+    .replace(/生産日本二位/g, 'せいさんにほんにい')
+    .replace(/米騒動/g, 'こめそうどう');
 }
 
 const rawData = [
@@ -342,6 +350,8 @@ function updateDisplay() {
   document.getElementById('progressText').textContent = `${currentIdx + 1} / ${data.length}`;
   document.getElementById('progressFill').style.width = `${((currentIdx + 1) / data.length) * 100}%`;
   document.getElementById('answerRow').style.display = 'none';
+  document.getElementById('prefDisplay').style.visibility = 'hidden';
+  document.getElementById('prefSelect').style.color = 'transparent';
   document.getElementById('countdown').textContent = '';
   document.getElementById('countdown').className = 'countdown';
   renderHints();
@@ -400,24 +410,47 @@ async function readOnePref(idx) {
   await speak('答えは。' + data[idx].name, rate);
   if (stopped) return;
   if (ansEl) { ansEl.style.color = '#0055bb'; ansEl.style.fontWeight = '600'; }
+  document.getElementById('prefDisplay').style.visibility = 'visible';
+  document.getElementById('prefSelect').style.color = '';
   document.getElementById('answerRow').style.display = 'flex';
   document.getElementById('answerBadge').textContent = data[idx].name;
 }
 
-async function startAll() {
+async function startOne() {
+  if (speaking) return;
+  stopped = false;
+  speaking = true;
+  document.getElementById('oneBtn').disabled = true;
+  document.getElementById('playBtn').disabled = true;
+  document.getElementById('randomBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  await readOnePref(currentIdx);
+  speaking = false;
+  document.getElementById('oneBtn').disabled = false;
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('randomBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+}
+
+async function startAll(randomOrder) {
   if (speaking) return;
   stopped = false;
   speaking = true;
   document.getElementById('playBtn').disabled = true;
+  document.getElementById('randomBtn').disabled = true;
   document.getElementById('stopBtn').disabled = false;
 
   const intervalSec = parseInt(document.getElementById('intervalRange').value);
 
-  for (let i = currentIdx; i < data.length; i++) {
+  // 県の順番を決める
+  let order = data.map((_, i) => i).slice(currentIdx);
+  if (randomOrder) order = shuffle(order);
+
+  for (let n = 0; n < order.length; n++) {
     if (stopped) break;
-    await readOnePref(i);
+    await readOnePref(order[n]);
     if (stopped) break;
-    if (i < data.length - 1) {
+    if (n < order.length - 1) {
       const countdownEl = document.getElementById('countdown');
       for (let s = intervalSec; s > 0; s--) {
         if (stopped) break;
@@ -435,6 +468,7 @@ async function startAll() {
   }
   speaking = false;
   document.getElementById('playBtn').disabled = false;
+  document.getElementById('randomBtn').disabled = false;
   document.getElementById('stopBtn').disabled = true;
 }
 
@@ -442,7 +476,9 @@ function stopAll() {
   stopped = true; speaking = false;
   synth.cancel();
   if (countdownTimer) clearTimeout(countdownTimer);
+  document.getElementById('oneBtn').disabled = false;
   document.getElementById('playBtn').disabled = false;
+  document.getElementById('randomBtn').disabled = false;
   document.getElementById('stopBtn').disabled = true;
   document.getElementById('countdown').textContent = '';
 }
